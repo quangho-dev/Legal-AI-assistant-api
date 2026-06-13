@@ -24,7 +24,6 @@ CREATE TABLE documents (
     source_type TEXT DEFAULT 'file',
     source_url TEXT,
     processing_details JSON DEFAULT '{}',
-    clerk_id TEXT NOT NULL REFERENCES users(clerk_id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
