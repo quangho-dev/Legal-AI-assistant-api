@@ -9,6 +9,7 @@ from src.rag.retrieval.utils import (
 )
 from typing import List, Dict
 from src.rag.retrieval.utils import rrf_rank_and_fuse
+from src.rag.retrieval.corrective import run_corrective_rag_pipeline
 
 
 def retrieve_context(user_query):
@@ -41,8 +42,29 @@ def retrieve_context(user_query):
             )
             print(f"Multi-query hybrid search resulted in: {len(chunks)} chunks")
 
-        # Step 8: Selecting top k chunks
-        chunks = chunks[: chat_settings["final_context_size"]]
+        elif strategy == "corrective-rag":
+            initial_chunks = hybrid_search(user_query, document_ids, chat_settings)
+            print(f"CRAG initial hybrid search returned: {len(initial_chunks)} chunks")
+
+            chunks, crag_verdict = run_corrective_rag_pipeline(
+                user_query=user_query,
+                initial_chunks=initial_chunks,
+                corrective_search_fn=lambda query: hybrid_search(
+                    query, document_ids, chat_settings
+                ),
+                final_context_size=chat_settings["final_context_size"],
+            )
+            print(f"CRAG final verdict: {crag_verdict}, chunks: {len(chunks)}")
+
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unsupported rag_strategy: {strategy}",
+            )
+
+        if strategy != "corrective-rag":
+            # Step 8: Selecting top k chunks
+            chunks = chunks[: chat_settings["final_context_size"]]
 
         # Step 9: Build the context from the retrieved chunks and format them into a structured context with citations.
         texts, images, tables, citations = build_context_from_retrieved_chunks(chunks)

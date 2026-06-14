@@ -18,7 +18,13 @@ class SendChatMessageRequest(BaseModel):
     message: str = Field(..., min_length=1, description="The user message content")
 
 
-RAG_STRATEGIES = ("basic", "hybrid", "multi-query-vector", "multi-query-hybrid")
+RAG_STRATEGIES = (
+    "basic",
+    "hybrid",
+    "multi-query-vector",
+    "multi-query-hybrid",
+    "corrective-rag",
+)
 
 OPENAI_CHAT_MODELS = (
     # GPT-5.5 frontier
@@ -145,6 +151,48 @@ class MessageRole(str, Enum):
 
 class QueryVariations(BaseModel):
     queries: List[str] = Field(..., description="The variations of the query")
+
+
+class ChunkRelevanceLabel(str, Enum):
+    CORRECT = "correct"
+    INCORRECT = "incorrect"
+    AMBIGUOUS = "ambiguous"
+
+
+class ChunkEvaluation(BaseModel):
+    chunk_index: int = Field(
+        ..., description="Zero-based index of the chunk in the evaluation batch"
+    )
+    label: ChunkRelevanceLabel = Field(
+        ..., description="Relevance of the chunk to the user query"
+    )
+    reason: str = Field(
+        default="",
+        description="Brief explanation for the relevance label",
+    )
+
+
+class RetrievalEvaluationResult(BaseModel):
+    evaluations: List[ChunkEvaluation] = Field(
+        ..., description="Per-chunk relevance evaluations"
+    )
+
+
+class RewrittenRetrievalQuery(BaseModel):
+    query: str = Field(
+        ..., description="Rewritten query optimized for document retrieval"
+    )
+    reason: str = Field(
+        default="",
+        description="Why the query was rewritten",
+    )
+
+
+class RefinedKnowledgeStrip(BaseModel):
+    refined_text: str = Field(
+        ...,
+        description="Query-relevant knowledge extracted from the chunk",
+    )
 
 
 class InputGuardrailCheck(BaseModel):
