@@ -11,6 +11,7 @@ from src.rag.ingestion.utils import (
     get_page_number,
     create_ai_summary,
 )
+from src.rag.legal_citation import extract_legal_metadata_from_chunk
 from src.models.index import ProcessingStatus
 from unstructured.chunking.title import chunk_by_title
 from src.services.webScrapper import scrapingbee_client
@@ -71,7 +72,9 @@ def process_document(document_id: str):
         )
 
         # Step 3 : Generate AI summaries for chunk which are Having images and tables.
-        processed_chunks = summarise_chunks(chunks, document_id)
+        processed_chunks = summarise_chunks(
+            chunks, document_id, document.get("filename", "")
+        )
         update_status_in_database(document_id, ProcessingStatus.VECTORIZATION)
 
         # Step 4 : Create vector embeddings (1536 dimensions per chunk).
@@ -208,7 +211,7 @@ def chunk_elements_by_title(elements):
         raise Exception(f"Failed to chunk elements by title: {str(e)}")
 
 
-def summarise_chunks(chunks, document_id, source_type="file"):
+def summarise_chunks(chunks, document_id, document_filename="", source_type="file"):
     """
     Create user-friendly, searchable chunks.
 
@@ -258,6 +261,12 @@ def summarise_chunks(chunks, document_id, source_type="file"):
                 original_content["tables"] = content_data["tables"]
             if content_data["images"]:
                 original_content["images"] = content_data["images"]
+
+            original_content["legal_citation"] = extract_legal_metadata_from_chunk(
+                chunk,
+                document_filename,
+                content_data["text"],
+            )
 
             # Assemble the final searchable unit with minimal but useful metadata.
             processed_chunk = {

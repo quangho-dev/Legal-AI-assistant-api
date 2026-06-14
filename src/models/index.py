@@ -9,22 +9,98 @@ class ProjectCreate(BaseModel):
 
 
 class ChatCreate(BaseModel):
-    title: str = Field(..., description="The title of the chat")
-    project_id: str = Field(..., description="The ID of the project")
+    title: str = Field(default="Cuộc trò chuyện mới", description="The title of the chat")
+    id: Optional[str] = Field(None, description="Optional client-provided chat ID")
 
 
-class ProjectSettings(BaseModel):
-    embedding_model: str = Field(..., description="The embedding model to use")
-    rag_strategy: str = Field(..., description="The RAG strategy to use")
-    agent_type: str = Field(..., description="The agent type to use")
-    chunks_per_search: int = Field(..., description="The number of chunks per search")
-    final_context_size: int = Field(..., description="The final context size")
-    similarity_threshold: float = Field(..., description="The similarity threshold")
-    number_of_queries: int = Field(..., description="The number of queries")
-    reranking_enabled: bool = Field(..., description="Whether reranking is enabled")
-    reranking_model: str = Field(..., description="The reranking model to use")
-    vector_weight: float = Field(..., description="The vector weight")
-    keyword_weight: float = Field(..., description="The keyword weight")
+class SendChatMessageRequest(BaseModel):
+    chatId: str = Field(..., description="The chat session ID")
+    message: str = Field(..., min_length=1, description="The user message content")
+
+
+RAG_STRATEGIES = ("basic", "hybrid", "multi-query-vector", "multi-query-hybrid")
+
+OPENAI_CHAT_MODELS = (
+    # GPT-5.5 frontier
+    "gpt-5.5",
+    "gpt-5.5-pro",
+    # GPT-5.4
+    "gpt-5.4",
+    "gpt-5.4-pro",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    # GPT-5 family
+    "gpt-5.3-codex",
+    "gpt-5.2",
+    "gpt-5.2-pro",
+    "gpt-5.1",
+    "gpt-5",
+    "gpt-5-mini",
+    "gpt-5-nano",
+    "gpt-5-pro",
+    # o-series reasoning
+    "o3-pro",
+    "o3",
+    "o4-mini",
+    "o3-mini",
+    "o1",
+    "o1-mini",
+    # GPT-4 family
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+)
+
+OPENAI_CHAT_MODELS_WITH_TEMPERATURE = {
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+}
+
+DEFAULT_CHAT_MODEL = "gpt-4o"
+
+
+class ChatSettings(BaseModel):
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="The embedding model to use",
+    )
+    chat_model: str = Field(
+        default=DEFAULT_CHAT_MODEL,
+        description="The OpenAI model used to generate the final chat answer",
+    )
+    rag_strategy: str = Field(default="hybrid", description="The RAG strategy to use")
+    agent_type: str = Field(default="default", description="The agent type to use")
+    chunks_per_search: int = Field(
+        default=20, description="The number of chunks per search"
+    )
+    final_context_size: int = Field(default=8, description="The final context size")
+    similarity_threshold: float = Field(
+        default=0.3, description="The similarity threshold"
+    )
+    number_of_queries: int = Field(default=3, description="The number of queries")
+    reranking_enabled: bool = Field(
+        default=False, description="Whether reranking is enabled"
+    )
+    reranking_model: str = Field(
+        default="cohere-rerank-3", description="The reranking model to use"
+    )
+    vector_weight: float = Field(default=0.7, description="The vector weight")
+    keyword_weight: float = Field(default=0.3, description="The keyword weight")
+
+
+class ChatSettingsCreate(ChatSettings):
+    pass
+
+
+class ChatSettingsUpdate(ChatSettings):
+    pass
 
 
 class FileUploadRequest(BaseModel):
@@ -48,6 +124,10 @@ class ProcessingStatus(str, Enum):
 
 class ConfirmUploadRequest(BaseModel):
     s3_key: str = Field(..., description="The S3 key of the uploaded file")
+
+
+class RenameDocumentRequest(BaseModel):
+    filename: str = Field(..., min_length=1, max_length=500, description="The new document name")
 
 
 class UrlRequest(BaseModel):

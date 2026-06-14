@@ -1,15 +1,41 @@
 from fastapi import APIRouter, HTTPException, Depends
 from src.services.supabase import supabase
 from src.services.clerkAuth import get_current_user_clerk_id, require_admin_user
-from src.models.index import FileUploadRequest, ProcessingStatus, UrlRequest, ConfirmUploadRequest
+from src.models.index import FileUploadRequest, ProcessingStatus, UrlRequest, ConfirmUploadRequest, RenameDocumentRequest
 from src.utils.index import validate_url
 from src.config.index import appConfig
 from src.services.awsS3 import s3_client
 import uuid
 from src.services.celery import perform_rag_ingestion_task
+from src.rag.legal_citation import (
+    format_legal_citation_for_client,
+    get_legal_citation_from_chunk_record,
+)
+from src.rag.chunk_content import build_chunk_display_text
 
 
 router = APIRouter(tags=["filesRoutes"])
+
+
+def normalize_document_filename(new_name: str, document: dict) -> str:
+    trimmed = new_name.strip()
+    if not trimmed:
+        raise HTTPException(
+            status_code=400,
+            detail="Tên tài liệu không được để trống",
+        )
+
+    if document.get("source_type") == "url":
+        return trimmed
+
+    old_filename = document.get("filename") or ""
+    if "." in old_filename:
+        extension = old_filename.rsplit(".", 1)[-1]
+        if extension and not trimmed.lower().endswith(f".{extension.lower()}"):
+            return f"{trimmed}.{extension}"
+
+    return trimmed
+
 
 """
 `/api/projects`
@@ -163,6 +189,137 @@ async def list_documents(
         )
 
 
+@router.get("/documents/{document_id}/content")
+async def get_document_content(
+    document_id: str,
+    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    try:
+        document_result = (
+            supabase.table("documents")
+            .select("id, filename, processing_status")
+            .eq("id", document_id)
+            .execute()
+        )
+
+        if not document_result.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu")
+
+        document = document_result.data[0]
+
+        if document.get("processing_status") != ProcessingStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=422,
+                detail="Tài liệu chưa sẵn sàng để xem",
+            )
+
+        chunks_result = (
+            supabase.table("document_chunks")
+            .select("chunk_index, page_number, content, original_content")
+            .eq("document_id", document_id)
+            .order("chunk_index")
+            .execute()
+        )
+
+        sections = []
+        full_text_parts = []
+
+        for chunk in chunks_result.data or []:
+            text = build_chunk_display_text(chunk)
+
+            sections.append(
+                {
+                    "chunkIndex": chunk.get("chunk_index"),
+                    "pageNumber": chunk.get("page_number"),
+                    "text": text,
+                }
+            )
+
+            if text:
+                full_text_parts.append(text)
+
+        return {
+            "message": "Document content retrieved successfully",
+            "data": {
+                "documentId": document_id,
+                "filename": document.get("filename"),
+                "sections": sections,
+                "fullText": "\n\n".join(full_text_parts),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Không thể tải nội dung tài liệu: {str(e)}",
+        )
+
+
+@router.get("/chunks/{chunk_id}")
+async def get_chunk_content(
+    chunk_id: str,
+    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    try:
+        chunk_result = (
+            supabase.table("document_chunks")
+            .select(
+                "id, document_id, chunk_index, page_number, content, original_content"
+            )
+            .eq("id", chunk_id)
+            .execute()
+        )
+
+        if not chunk_result.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy đoạn tài liệu")
+
+        chunk = chunk_result.data[0]
+        document_result = (
+            supabase.table("documents")
+            .select("id, filename, processing_status")
+            .eq("id", chunk["document_id"])
+            .execute()
+        )
+
+        if not document_result.data:
+            raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu")
+
+        document = document_result.data[0]
+
+        if document.get("processing_status") != ProcessingStatus.COMPLETED.value:
+            raise HTTPException(
+                status_code=422,
+                detail="Tài liệu chưa sẵn sàng để xem",
+            )
+
+        original_content = chunk.get("original_content") or {}
+        text = build_chunk_display_text(chunk)
+        legal = get_legal_citation_from_chunk_record(chunk, document.get("filename", ""))
+
+        return {
+            "message": "Chunk content retrieved successfully",
+            "data": {
+                "chunkId": chunk_id,
+                "documentId": chunk["document_id"],
+                "filename": document.get("filename"),
+                "chunkIndex": chunk.get("chunk_index"),
+                "pageNumber": chunk.get("page_number"),
+                "text": text,
+                **format_legal_citation_for_client(legal),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Không thể tải nội dung đoạn tài liệu: {str(e)}",
+        )
+
+
 @router.delete("/files/{document_id}")
 async def delete_document(
     document_id: str,
@@ -219,6 +376,60 @@ async def delete_document(
         raise HTTPException(
             status_code=500,
             detail=f"An internal server error occurred while deleting document {document_id}: {str(e)}",
+        )
+
+
+@router.patch("/files/{document_id}")
+async def rename_document(
+    document_id: str,
+    rename_request: RenameDocumentRequest,
+    _admin_clerk_id: str = Depends(require_admin_user),
+):
+    try:
+        document_result = (
+            supabase.table("documents")
+            .select("*")
+            .eq("id", document_id)
+            .execute()
+        )
+
+        if not document_result.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Không tìm thấy tài liệu",
+            )
+
+        document = document_result.data[0]
+        new_filename = normalize_document_filename(
+            rename_request.filename,
+            document,
+        )
+
+        document_update_result = (
+            supabase.table("documents")
+            .update({"filename": new_filename})
+            .eq("id", document_id)
+            .execute()
+        )
+
+        if not document_update_result.data:
+            raise HTTPException(
+                status_code=422,
+                detail="Không thể đổi tên tài liệu",
+            )
+
+        return {
+            "message": "Document renamed successfully",
+            "data": document_update_result.data[0],
+        }
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An internal server error occurred while renaming document {document_id}: {str(e)}",
         )
 
 

@@ -15,4 +15,4 @@ else
   exit 1
 fi
 
-exec "$PYTHON" -m uvicorn src.server:app --reload --host 0.0.0.0 --port 8002
+exec "$PYTHON" -m uvicorn src.server:app --reload --host 0.0.0.0 --port 8003
