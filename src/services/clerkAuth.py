@@ -15,10 +15,10 @@ def _get_clerk_sdk() -> Clerk:
 def get_current_user_clerk_id(request: Request) -> str:
     try:
         sdk = _get_clerk_sdk()
-
+        
         request_state = sdk.authenticate_request(
             request,
-            options=AuthenticateRequestOptions(authorized_parties=appConfig["domain"]),
+            options=AuthenticateRequestOptions(authorized_parties=[appConfig["domain"]]),
         )
 
         if not request_state.is_signed_in:

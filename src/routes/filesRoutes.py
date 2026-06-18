@@ -132,6 +132,7 @@ async def get_upload_presigned_url(
                     "file_size": file_upload_request.file_size,
                     "file_type": file_upload_request.file_type,
                     "processing_status": ProcessingStatus.PENDING,
+                    "document_scope": "corpus",
                 }
             )
             .execute()
@@ -170,6 +171,7 @@ async def list_documents(
         documents_result = (
             supabase.table("documents")
             .select("*")
+            .eq("document_scope", "corpus")
             .order("created_at", desc=True)
             .execute()
         )
@@ -197,7 +199,7 @@ async def get_document_content(
     try:
         document_result = (
             supabase.table("documents")
-            .select("id, filename, processing_status")
+            .select("id, filename, processing_status, document_scope, clerk_id")
             .eq("id", document_id)
             .execute()
         )
@@ -206,6 +208,12 @@ async def get_document_content(
             raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu")
 
         document = document_result.data[0]
+
+        if document.get("document_scope") == "compare":
+            raise HTTPException(
+                status_code=403,
+                detail="Tài liệu so sánh chỉ truy cập qua API so sánh",
+            )
 
         if document.get("processing_status") != ProcessingStatus.COMPLETED.value:
             raise HTTPException(
@@ -441,6 +449,7 @@ async def get_documents_monitor(
         documents_result = (
             supabase.table("documents")
             .select("*")
+            .eq("document_scope", "corpus")
             .order("created_at", desc=True)
             .execute()
         )
@@ -589,6 +598,7 @@ async def process_url_admin(
                     "processing_status": ProcessingStatus.UPLOADED,
                     "source_type": "url",
                     "source_url": url,
+                    "document_scope": "corpus",
                     "processing_details": {
                         "uploaded": {
                             "source_url": url,

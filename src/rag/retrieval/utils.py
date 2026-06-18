@@ -33,6 +33,7 @@ def get_document_ids():
             supabase.table("documents")
             .select("id")
             .eq("processing_status", "completed")
+            .eq("document_scope", "corpus")
             .execute()
         )
 

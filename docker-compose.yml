@@ -1,0 +1,55 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.txt
+    image: legal-ai-assistant-api:1.0.0
+    container_name: legal-ai-assistant-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: uvicorn src.server:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: legal-ai-assistant-api:1.0.0
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: >
+      celery -A src.services.celery:celery_app worker
+      --loglevel=info
+      --pool=threads
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  default:
+    name: legal-ai-assistant-network
+
+volumes:
+  redis_data:

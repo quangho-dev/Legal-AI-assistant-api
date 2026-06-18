@@ -202,3 +202,92 @@ class InputGuardrailCheck(BaseModel):
     is_prompt_injection: bool = Field(description="Appears to be a prompt injection attempt")
     contains_pii: bool = Field(description="Contains personal identifiable information")
     reason: str = Field(description="Brief explanation if unsafe, empty string if safe")
+
+
+class CompareDocumentsRequest(BaseModel):
+    sourceDocumentId: str = Field(..., description="ID of the user's compare source document")
+    referenceDocumentIds: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=5,
+        description="IDs of user's compare reference documents",
+    )
+    instruction: str = Field(
+        ...,
+        min_length=10,
+        max_length=4000,
+        description="Custom comparison instruction from the user",
+    )
+
+
+class ComparisonPlan(BaseModel):
+    objectives: List[str] = Field(..., description="Goals of the comparison")
+    focus_areas: List[str] = Field(..., description="Areas to focus on")
+    comparison_dimensions: List[str] = Field(
+        ..., description="Dimensions used to compare documents"
+    )
+
+
+class DocumentIdentification(BaseModel):
+    filename: str
+    role: str = Field(
+        description="Document role in comparison: source or reference",
+    )
+    document_type: str = Field(
+        description="Inferred legal document type in Vietnamese",
+    )
+    title_or_subject: str = Field(
+        description="Inferred title or subject from opening text",
+    )
+    summary: str = Field(
+        description="Brief summary of what the document appears to be about",
+    )
+    legal_domain: str = Field(
+        default="",
+        description="Legal domain or field, e.g. lao động, dân sự",
+    )
+
+
+class DocumentIdentificationBatch(BaseModel):
+    identifications: List[DocumentIdentification]
+
+
+class OutlineSection(BaseModel):
+    title: str
+    summary: str
+    excerpt: str = Field(
+        default="",
+        description="Representative excerpt from this section",
+    )
+
+
+class DocumentOutline(BaseModel):
+    sections: List[OutlineSection]
+
+
+class ComparisonTopic(BaseModel):
+    title: str
+    rationale: str
+
+
+class ComparisonTopicMap(BaseModel):
+    topics: List[ComparisonTopic]
+
+
+class TopicComparisonItem(BaseModel):
+    topic: str
+    source_position: str
+    reference_positions: List[str]
+    similarities: List[str]
+    differences: List[str]
+    notable_gaps: List[str]
+
+
+class TopicComparisonBatch(BaseModel):
+    comparisons: List[TopicComparisonItem]
+
+
+class ComparisonAgentStep(BaseModel):
+    agent: str
+    status: str
+    summary: str
