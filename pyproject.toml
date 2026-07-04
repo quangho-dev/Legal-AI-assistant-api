@@ -26,4 +26,9 @@ dependencies = [
     "onnxruntime>=1.19.0,<1.20",
     "markdown>=3.10.2",
     "unstructured-pytesseract>=0.3.15",
+    "llama-index-core>=0.12.0",
+    "llama-index-llms-openai>=0.3.0",
+    "llama-index-embeddings-openai>=0.3.0",
+    "langgraph>=1.2.7",
+    "langsmith>=0.8.0",
 ]

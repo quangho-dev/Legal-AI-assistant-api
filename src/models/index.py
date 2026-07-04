@@ -220,6 +220,48 @@ class CompareDocumentsRequest(BaseModel):
     )
 
 
+class CompareDocumentsV3Request(BaseModel):
+    sourceDocumentId: str = Field(..., description="ID of the user's compare source document")
+    referenceDocumentIds: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=5,
+        description="IDs of user's compare reference documents",
+    )
+    instruction: str = Field(
+        ...,
+        min_length=10,
+        max_length=4000,
+        description="User comparison question or instruction",
+    )
+    userRole: str = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="User role or perspective, e.g. luật sư tư vấn, nhân sự",
+    )
+
+
+class DocumentQueryQuestion(BaseModel):
+    document_id: str
+    filename: str
+    role: str = Field(description="source or reference")
+    document_type: str = Field(default="", description="Inferred document type")
+    questions: List[str] = Field(
+        ...,
+        min_length=1,
+        description="Retrieval questions tailored for this document",
+    )
+
+
+class QuestionDecompositionResult(BaseModel):
+    document_questions: List[DocumentQueryQuestion]
+    reasoning: str = Field(
+        default="",
+        description="Brief explanation of how questions were decomposed",
+    )
+
+
 class ComparisonPlan(BaseModel):
     objectives: List[str] = Field(..., description="Goals of the comparison")
     focus_areas: List[str] = Field(..., description="Areas to focus on")

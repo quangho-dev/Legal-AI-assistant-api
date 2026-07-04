@@ -254,13 +254,13 @@ def agent_compare_topic_batch(
     return structured_llm.invoke(messages)
 
 
-def agent_synthesize_report(
+def build_report_messages(
     instruction: str,
     plan: ComparisonPlan,
     source_filename: str,
     reference_filenames: List[str],
     comparisons: List,
-) -> str:
+) -> list:
     topic_titles = [item.topic for item in comparisons]
     topic_index = "\n".join(
         f"{index}. {title}" for index, title in enumerate(topic_titles, start=1)
@@ -281,11 +281,7 @@ def agent_synthesize_report(
             f"**Khoảng trống / rủi ro:**\n{gaps}"
         )
 
-    settings = get_chat_settings()
-    chat_model = settings.get("chat_model", "gpt-4o")
-    chat_llm = get_chat_llm(chat_model)
-
-    messages = [
+    return [
         SystemMessage(
             content=(
                 "You are a senior legal analyst writing a comparison report in Vietnamese. "
@@ -325,7 +321,51 @@ def agent_synthesize_report(
         ),
     ]
 
-    response = chat_llm.invoke(messages)
+
+def iter_report_tokens(
+    instruction: str,
+    plan: ComparisonPlan,
+    source_filename: str,
+    reference_filenames: List[str],
+    comparisons: List,
+):
+    settings = get_chat_settings()
+    chat_model = settings.get("chat_model", "gpt-4o")
+    chat_llm = get_chat_llm(chat_model)
+
+    for chunk in chat_llm.stream(
+        build_report_messages(
+            instruction,
+            plan,
+            source_filename,
+            reference_filenames,
+            comparisons,
+        )
+    ):
+        content = chunk.content
+        if isinstance(content, str) and content:
+            yield content
+
+
+def agent_synthesize_report(
+    instruction: str,
+    plan: ComparisonPlan,
+    source_filename: str,
+    reference_filenames: List[str],
+    comparisons: List,
+) -> str:
+    settings = get_chat_settings()
+    chat_model = settings.get("chat_model", "gpt-4o")
+    chat_llm = get_chat_llm(chat_model)
+    response = chat_llm.invoke(
+        build_report_messages(
+            instruction,
+            plan,
+            source_filename,
+            reference_filenames,
+            comparisons,
+        )
+    )
     return response.content
 
 
@@ -333,6 +373,7 @@ def run_document_comparison(
     source_doc: dict,
     reference_docs: List[dict],
     instruction: str,
+    skip_report: bool = False,
 ) -> dict:
     steps: List[ComparisonAgentStep] = []
 
@@ -520,13 +561,52 @@ def run_document_comparison(
             detail=f"Không thể đối chiếu tài liệu: {error}",
         )
 
+    reference_filenames = [doc["filename"] for doc in reference_docs]
+    report_context = {
+        "instruction": instruction,
+        "plan": plan,
+        "source_filename": source_doc["filename"],
+        "reference_filenames": reference_filenames,
+        "comparisons": all_comparisons,
+    }
+
+    if skip_report:
+        return {
+            "report": "",
+            "_reportContext": report_context,
+            "steps": [step.model_dump() for step in steps],
+            "plan": {
+                "objectives": plan.objectives,
+                "focusAreas": plan.focus_areas,
+                "comparisonDimensions": plan.comparison_dimensions,
+            },
+            "documentContext": [
+                {
+                    "filename": item.filename,
+                    "role": item.role,
+                    "documentType": item.document_type,
+                    "titleOrSubject": item.title_or_subject,
+                    "summary": item.summary,
+                    "legalDomain": item.legal_domain,
+                }
+                for item in identifications
+            ],
+            "sourceDocument": {
+                "id": source_doc["id"],
+                "filename": source_doc["filename"],
+            },
+            "referenceDocuments": [
+                {"id": doc["id"], "filename": doc["filename"]} for doc in reference_docs
+            ],
+        }
+
     # Agent 6: Reporter
     try:
         report = agent_synthesize_report(
             instruction,
             plan,
             source_doc["filename"],
-            [doc["filename"] for doc in reference_docs],
+            reference_filenames,
             all_comparisons,
         )
         steps.append(

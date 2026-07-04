@@ -17,6 +17,8 @@ from src.services.compareDocumentService import (
     rename_user_compare_document,
 )
 from src.services.compareService import run_document_comparison_by_ids
+from src.services.compareStreamService import iter_compare_v1_stream
+from src.utils.sse import create_sse_response
 
 router = APIRouter(tags=["compareRoutes"])
 
@@ -169,6 +171,29 @@ async def delete_compare_document(
             status_code=500,
             detail=f"Không thể xóa tài liệu: {error}",
         )
+
+
+@router.post("/stream")
+async def compare_documents_stream(
+    payload: CompareDocumentsRequest,
+    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    trimmed_instruction = payload.instruction.strip()
+
+    if len(trimmed_instruction) < 10:
+        raise HTTPException(
+            status_code=422,
+            detail="Yêu cầu so sánh phải có ít nhất 10 ký tự",
+        )
+
+    return create_sse_response(
+        iter_compare_v1_stream(
+            current_user_clerk_id,
+            payload.sourceDocumentId,
+            payload.referenceDocumentIds,
+            trimmed_instruction,
+        )
+    )
 
 
 @router.post("")
