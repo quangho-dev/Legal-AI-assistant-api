@@ -124,7 +124,12 @@ def ensure_chat_for_user(chat_id: str, clerk_id: str, title: str) -> dict:
     return created.data[0]
 
 
-def process_chat_message(chat_id: str, clerk_id: str, message: str) -> dict:
+def process_chat_message(
+    chat_id: str,
+    clerk_id: str,
+    message: str,
+    document_ids: list[str] | None = None,
+) -> dict:
     ensure_user_exists(clerk_id)
 
     chat = ensure_chat_for_user(
@@ -159,7 +164,7 @@ def process_chat_message(chat_id: str, clerk_id: str, message: str) -> dict:
         raise HTTPException(status_code=500, detail="Không thể lưu tin nhắn")
 
     try:
-        texts, images, tables, citations = retrieve_context(message)
+        texts, images, tables, citations = retrieve_context(message, document_ids)
     except HTTPException:
         raise
     except Exception as e:

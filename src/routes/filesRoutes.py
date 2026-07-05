@@ -209,10 +209,15 @@ async def get_document_content(
 
         document = document_result.data[0]
 
-        if document.get("document_scope") == "compare":
+        if document.get("document_scope") in ("compare", "contract"):
+            scope_label = (
+                "so sánh"
+                if document.get("document_scope") == "compare"
+                else "soạn thảo hợp đồng"
+            )
             raise HTTPException(
                 status_code=403,
-                detail="Tài liệu so sánh chỉ truy cập qua API so sánh",
+                detail=f"Tài liệu {scope_label} chỉ truy cập qua API tương ứng",
             )
 
         if document.get("processing_status") != ProcessingStatus.COMPLETED.value:

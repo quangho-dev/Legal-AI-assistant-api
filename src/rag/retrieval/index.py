@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from src.services.supabase import supabase
 from src.rag.retrieval.utils import (
     get_chat_settings,
-    get_document_ids,
+    resolve_document_ids_for_retrieval,
     build_context_from_retrieved_chunks,
     generate_query_variations,
 )
@@ -12,10 +12,10 @@ from src.rag.retrieval.utils import rrf_rank_and_fuse
 from src.rag.retrieval.corrective import run_corrective_rag_pipeline
 
 
-def retrieve_context(user_query):
+def retrieve_context(user_query, selected_document_ids=None):
     try:
         chat_settings = get_chat_settings()
-        document_ids = get_document_ids()
+        document_ids = resolve_document_ids_for_retrieval(selected_document_ids)
         strategy = chat_settings["rag_strategy"]
         chunks = []
         if strategy == "basic":

@@ -16,6 +16,10 @@ class ChatCreate(BaseModel):
 class SendChatMessageRequest(BaseModel):
     chatId: str = Field(..., description="The chat session ID")
     message: str = Field(..., min_length=1, description="The user message content")
+    documentIds: Optional[List[str]] = Field(
+        None,
+        description="Optional corpus document IDs to limit retrieval scope",
+    )
 
 
 RAG_STRATEGIES = (
@@ -239,6 +243,73 @@ class CompareDocumentsV3Request(BaseModel):
         min_length=2,
         max_length=200,
         description="User role or perspective, e.g. luật sư tư vấn, nhân sự",
+    )
+
+
+class ContractLanguage(str, Enum):
+    VI = "vi"
+    EN = "en"
+
+
+class ContractDraftRequest(BaseModel):
+    language: ContractLanguage = Field(
+        ...,
+        description="Contract language: vi (Vietnamese) or en (English)",
+    )
+    requirements: str = Field(
+        ...,
+        min_length=10,
+        max_length=8000,
+        description="General description of contract requirements",
+    )
+    partyRole: str = Field(
+        ...,
+        min_length=2,
+        max_length=500,
+        description="Which party the user represents in the contract",
+    )
+    templateDocumentId: Optional[str] = Field(
+        default=None,
+        description="Optional uploaded template contract document ID",
+    )
+    descriptionDocumentIds: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Optional uploaded description documents (MOU, key terms, etc.)",
+    )
+
+
+class ContractExportDocxRequest(BaseModel):
+    language: ContractLanguage = Field(
+        ...,
+        description="Contract language: vi (Vietnamese) or en (English)",
+    )
+    requirements: str = Field(
+        ...,
+        min_length=10,
+        max_length=8000,
+        description="General description of contract requirements",
+    )
+    partyRole: str = Field(
+        ...,
+        min_length=2,
+        max_length=500,
+        description="Which party the user represents in the contract",
+    )
+    outline: str = Field(
+        ...,
+        min_length=20,
+        max_length=20000,
+        description="Approved contract outline used to draft the full document",
+    )
+    templateDocumentId: Optional[str] = Field(
+        default=None,
+        description="Optional uploaded template contract document ID",
+    )
+    descriptionDocumentIds: List[str] = Field(
+        default_factory=list,
+        max_length=5,
+        description="Optional uploaded description documents",
     )
 
 

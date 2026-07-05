@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.models.index import ChatCreate, SendChatMessageRequest
+from src.models.index import ChatCreate, ProcessingStatus, SendChatMessageRequest
 from src.services.chatService import (
     ensure_user_exists,
     format_chat_for_client,
@@ -14,6 +14,45 @@ message_router = APIRouter(tags=["chatMessageRoutes"])
 session_router = APIRouter(tags=["chatSessionRoutes"])
 
 
+def _serialize_chat_document(document: dict) -> dict:
+    return {
+        "id": document["id"],
+        "filename": document["filename"],
+        "processingStatus": document.get("processing_status"),
+        "createdAt": document.get("created_at"),
+    }
+
+
+@message_router.get("/documents")
+async def list_chat_documents(
+    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    try:
+        documents_result = (
+            supabase.table("documents")
+            .select("id, filename, processing_status, created_at")
+            .eq("document_scope", "corpus")
+            .eq("processing_status", ProcessingStatus.COMPLETED.value)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        return {
+            "message": "Chat documents retrieved successfully",
+            "data": [
+                _serialize_chat_document(document)
+                for document in documents_result.data or []
+            ],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Không thể tải danh sách tài liệu: {str(e)}",
+        )
+
+
 @message_router.post("")
 async def send_chat_message(
     payload: SendChatMessageRequest,
@@ -24,6 +63,7 @@ async def send_chat_message(
             payload.chatId,
             current_user_clerk_id,
             payload.message.strip(),
+            payload.documentIds,
         )
         return {
             "message": "Chat message processed successfully",

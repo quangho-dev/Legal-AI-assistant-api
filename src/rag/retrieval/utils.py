@@ -45,6 +45,38 @@ def get_document_ids():
         raise Exception(f"Failed to get document IDs: {str(e)}")
 
 
+def resolve_document_ids_for_retrieval(selected_document_ids: List[str] | None):
+    try:
+        all_document_ids = get_document_ids()
+
+        if not selected_document_ids:
+            return all_document_ids
+
+        unique_selected_ids = list(dict.fromkeys(selected_document_ids))
+
+        if not unique_selected_ids:
+            return all_document_ids
+
+        allowed_ids = set(all_document_ids)
+        invalid_ids = [
+            document_id
+            for document_id in unique_selected_ids
+            if document_id not in allowed_ids
+        ]
+
+        if invalid_ids:
+            raise HTTPException(
+                status_code=422,
+                detail="Một hoặc nhiều tài liệu đã chọn không tồn tại hoặc chưa sẵn sàng",
+            )
+
+        return unique_selected_ids
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise Exception(f"Failed to resolve document IDs: {str(e)}")
+
+
 def build_context_from_retrieved_chunks(
     chunks: List[Dict],
 ) -> Tuple[List[str], List[str], List[str], List[Dict]]:

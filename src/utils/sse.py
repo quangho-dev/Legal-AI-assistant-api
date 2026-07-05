@@ -20,6 +20,10 @@ def sse_token(content: str) -> str:
     return format_sse_event("token", {"content": content})
 
 
+def sse_outline_token(content: str) -> str:
+    return format_sse_event("outline_token", {"content": content})
+
+
 def sse_done(data: dict[str, Any]) -> str:
     return format_sse_event("done", data)
 

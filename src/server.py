@@ -8,6 +8,7 @@ from src.routes.chatRoutes import session_router as chatSessionRoutes
 from src.routes.compareRoutes import router as compareRoutes
 from src.routes.compareV2Routes import router as compareV2Routes
 from src.routes.compareV3Routes import router as compareV3Routes
+from src.routes.contractRoutes import router as contractRoutes
 
 # Create FastAPI app
 app = FastAPI(
@@ -33,6 +34,7 @@ app.include_router(chatSessionRoutes, prefix="/api/chats")
 app.include_router(compareRoutes, prefix="/api/compare")
 app.include_router(compareV2Routes, prefix="/api/compare/v2")
 app.include_router(compareV3Routes, prefix="/api/compare/v3")
+app.include_router(contractRoutes, prefix="/api/contracts")
 
 @app.get("/health")
 async def health_check():
