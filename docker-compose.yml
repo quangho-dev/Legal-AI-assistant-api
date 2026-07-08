@@ -17,8 +17,8 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.txt
-    image: legal-ai-assistant-api:1.0.0
+      dockerfile: Dockerfile
+    image: legal-ai-assistant-api:1.0.4
     container_name: legal-ai-assistant-api
     ports:
       - "8000:8000"
@@ -33,7 +33,7 @@ services:
         condition: service_healthy
 
   worker:
-    image: legal-ai-assistant-api:1.0.0
+    image: legal-ai-assistant-api:1.0.4
     env_file:
       - .env
     environment:
