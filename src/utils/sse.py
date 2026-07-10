@@ -16,6 +16,14 @@ def sse_status(message: str) -> str:
     return format_sse_event("status", {"message": message})
 
 
+def sse_progress(percent: int, message: str) -> str:
+    clamped = max(0, min(100, int(percent)))
+    return format_sse_event(
+        "progress",
+        {"percent": clamped, "message": message},
+    )
+
+
 def sse_token(content: str) -> str:
     return format_sse_event("token", {"content": content})
 

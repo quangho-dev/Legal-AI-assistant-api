@@ -21,6 +21,7 @@ from src.services.contractDraftService import (
     draft_contract,
     export_contract_docx,
     iter_contract_draft_stream,
+    iter_contract_export_docx_stream,
 )
 from src.utils.content_disposition import build_attachment_content_disposition
 from src.utils.sse import create_sse_response
@@ -291,3 +292,48 @@ async def export_contract_docx_document(
             status_code=500,
             detail=f"Không thể xuất file Word: {error}",
         )
+
+
+@router.post("/export/docx/stream")
+async def export_contract_docx_document_stream(
+    payload: ContractExportDocxRequest,
+    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    ensure_user_exists(current_user_clerk_id)
+
+    trimmed_requirements = payload.requirements.strip()
+    trimmed_party_role = payload.partyRole.strip()
+    trimmed_outline = payload.outline.strip()
+
+    if len(trimmed_requirements) < 10:
+        raise HTTPException(
+            status_code=422,
+            detail="Mô tả yêu cầu phải có ít nhất 10 ký tự",
+        )
+
+    if len(trimmed_party_role) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail="Vai trò bên trong hợp đồng phải có ít nhất 2 ký tự",
+        )
+
+    if len(trimmed_outline) < 20:
+        raise HTTPException(
+            status_code=422,
+            detail="Dàn ý phác thảo phải có ít nhất 20 ký tự",
+        )
+
+    normalized_payload = payload.model_copy(
+        update={
+            "requirements": trimmed_requirements,
+            "partyRole": trimmed_party_role,
+            "outline": trimmed_outline,
+        }
+    )
+
+    return create_sse_response(
+        iter_contract_export_docx_stream(
+            current_user_clerk_id,
+            normalized_payload,
+        )
+    )
