@@ -147,6 +147,25 @@ class UrlRequest(BaseModel):
     url: str = Field(..., description="The URL to process")
 
 
+class CaseLawCrawlRequest(BaseModel):
+    linhVuc: int = Field(
+        default=34,
+        description="Legal field code on anle.toaan.gov.vn (34 = Dân sự)",
+    )
+    maxPages: int = Field(
+        default=3,
+        ge=1,
+        le=50,
+        description="Maximum listing pages to crawl",
+    )
+    maxItems: Optional[int] = Field(
+        default=20,
+        ge=1,
+        le=500,
+        description="Optional cap on number of case laws to ingest",
+    )
+
+
 class MessageCreate(BaseModel):
     content: str = Field(..., description="The content of the message")
 

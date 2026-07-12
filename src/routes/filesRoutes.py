@@ -1,12 +1,27 @@
 from fastapi import APIRouter, HTTPException, Depends
 from src.services.supabase import supabase
 from src.services.clerkAuth import get_current_user_clerk_id, require_admin_user
-from src.models.index import FileUploadRequest, ProcessingStatus, UrlRequest, ConfirmUploadRequest, RenameDocumentRequest
+from src.models.index import (
+    FileUploadRequest,
+    ProcessingStatus,
+    UrlRequest,
+    ConfirmUploadRequest,
+    RenameDocumentRequest,
+    CaseLawCrawlRequest,
+)
 from src.utils.index import validate_url
 from src.config.index import appConfig
 from src.services.awsS3 import s3_client
 import uuid
-from src.services.celery import perform_rag_ingestion_task
+from src.services.celery import (
+    perform_rag_ingestion_task,
+    perform_case_law_crawl_task,
+)
+from src.services.caseLawCrawlJobStore import (
+    create_crawl_job,
+    get_crawl_job,
+    update_crawl_job,
+)
 from src.rag.legal_citation import (
     format_legal_citation_for_client,
     get_legal_citation_from_chunk_record,
@@ -651,6 +666,73 @@ async def process_url_admin(
             status_code=500,
             detail=f"An internal server error occurred while processing URL: {str(e)}",
         )
+
+
+@router.post("/files/case-law/crawl")
+async def crawl_case_laws_admin(
+    payload: CaseLawCrawlRequest,
+    _admin_clerk_id: str = Depends(require_admin_user),
+):
+    job_id = create_crawl_job(
+        linh_vuc=payload.linhVuc,
+        max_pages=payload.maxPages,
+        max_items=payload.maxItems,
+    )
+    try:
+        task = perform_case_law_crawl_task.delay(
+            job_id,
+            payload.linhVuc,
+            payload.maxPages,
+            payload.maxItems,
+        )
+    except Exception as error:
+        update_crawl_job(
+            job_id,
+            status="failed",
+            percent=100,
+            message="Không thể xếp hàng crawl án lệ",
+            error=str(error),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Không thể khởi chạy crawl án lệ: {error}",
+        )
+
+    job = update_crawl_job(job_id, taskId=task.id) or {
+        "jobId": job_id,
+        "status": "queued",
+        "percent": 0,
+        "message": "Đã xếp hàng crawl án lệ...",
+        "taskId": task.id,
+    }
+    return {
+        "message": "Case law crawl started",
+        "data": {
+            **job,
+            "taskId": task.id,
+            "source": (
+                "https://anle.toaan.gov.vn/webcenter/portal/anle/anle"
+                f"?linhVuc={payload.linhVuc}"
+            ),
+        },
+    }
+
+
+@router.get("/files/case-law/crawl/{job_id}")
+async def get_case_law_crawl_job(
+    job_id: str,
+    _admin_clerk_id: str = Depends(require_admin_user),
+):
+    job = get_crawl_job(job_id)
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy tác vụ crawl án lệ",
+        )
+    return {
+        "message": "Case law crawl job retrieved",
+        "data": job,
+    }
 
 
 @router.post("/{project_id}/files/confirm")

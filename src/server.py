@@ -9,6 +9,7 @@ from src.routes.compareRoutes import router as compareRoutes
 from src.routes.compareV2Routes import router as compareV2Routes
 from src.routes.compareV3Routes import router as compareV3Routes
 from src.routes.contractRoutes import router as contractRoutes
+from src.routes.caseLawRoutes import router as caseLawRoutes
 
 # Create FastAPI app
 app = FastAPI(
@@ -35,6 +36,7 @@ app.include_router(compareRoutes, prefix="/api/compare")
 app.include_router(compareV2Routes, prefix="/api/compare/v2")
 app.include_router(compareV3Routes, prefix="/api/compare/v3")
 app.include_router(contractRoutes, prefix="/api/contracts")
+app.include_router(caseLawRoutes, prefix="/api/case-laws")
 
 @app.get("/health")
 async def health_check():

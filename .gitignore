@@ -96,3 +96,12 @@ secrets/
 *.swo
 *~
 
+# Local OCR models / crawl debug artifacts
+tessdata/
+_ocr_*.png
+_page*.png
+_page*.jpg
+_fixed.pdf
+_case.pdf
+_test_*.py
+
