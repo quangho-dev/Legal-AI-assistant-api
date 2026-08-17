@@ -1,0 +1,8 @@
+trolyailuat.com {
+    reverse_proxy web:8000
+    encode gzip
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}

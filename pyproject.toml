@@ -33,3 +33,16 @@ dependencies = [
     "langgraph>=1.2.7",
     "langsmith>=0.8.0",
 ]
+
+# PyTorch / Numba / pikepdf dropped Intel Mac wheels in recent versions.
+# transformers>=5 requires torch>=2.4 and crashes with NameError: nn is not defined.
+[tool.uv]
+override-dependencies = [
+    "torch==2.2.2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "torchvision==0.17.2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numba==0.62.1 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "llvmlite==0.45.1 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "pikepdf==9.11.0 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numpy<2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "transformers>=4.45.0,<5 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+]

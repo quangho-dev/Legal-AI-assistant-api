@@ -22,7 +22,11 @@ def get_current_user_clerk_id(request: Request) -> str:
         )
 
         if not request_state.is_signed_in:
-            raise HTTPException(status_code=401, detail="User is not signed in")
+            reason = getattr(request_state, "reason", None) or "unknown"
+            raise HTTPException(
+                status_code=401,
+                detail=f"User is not signed in ({reason})",
+            )
 
         clerk_id = request_state.payload.get("sub")
 

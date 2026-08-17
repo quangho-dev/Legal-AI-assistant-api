@@ -11,10 +11,16 @@ if [ -f ".venv/Scripts/python.exe" ]; then
   POOL="solo"
 elif [ -f ".venv/bin/python" ]; then
   PYTHON=".venv/bin/python"
-  POOL="prefork"
+  # prefork + native libs (torch/onnx/HF) aborts on macOS after fork()
+  if [ "$(uname -s)" = "Darwin" ]; then
+    POOL="solo"
+  else
+    POOL="prefork"
+  fi
 else
   echo "Virtual environment not found. Run: uv sync"
   exit 1
 fi
 
-exec "$PYTHON" -m celery -A src.services.celery:celery_app worker --loglevel=info --pool="$POOL"
+echo "Using pool: ${POOL}"
+exec "$PYTHON" -m celery -A src.services.celery:celery_app worker --loglevel=info --pool="$POOL" --concurrency=1
