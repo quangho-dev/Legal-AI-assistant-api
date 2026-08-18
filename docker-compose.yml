@@ -3,7 +3,7 @@ services:
     image: redis:7-alpine
     container_name: redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -47,23 +47,9 @@ services:
       redis:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2.6-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - api
-
 networks:
   default:
     name: legal-ai-assistant-network
 
 volumes:
   redis_data:
-  caddy_data:
-  caddy_config:

@@ -14,6 +14,10 @@ dependencies = [
     "scrapingbee>=2.0.0",
     "beautifulsoup4>=4.12.0",
     "supabase>=2.31.0",
+    "numpy>=1.26.0,<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numpy>=1.26.0; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "numba==0.62.1; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numba>=0.62.0; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "unstructured>=0.18.32",
     "pdfminer.six>=20221105",
     "pypdf>=4.0",
@@ -37,12 +41,12 @@ dependencies = [
 # PyTorch / Numba / pikepdf dropped Intel Mac wheels in recent versions.
 # transformers>=5 requires torch>=2.4 and crashes with NameError: nn is not defined.
 [tool.uv]
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
 override-dependencies = [
     "torch==2.2.2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "torchvision==0.17.2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
-    "numba==0.62.1 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
-    "llvmlite==0.45.1 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "pikepdf==9.11.0 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
-    "numpy<2 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "transformers>=4.45.0,<5 ; sys_platform == 'darwin' and platform_machine == 'x86_64'",
 ]
