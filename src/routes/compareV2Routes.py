@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.models.index import CompareDocumentsRequest
-from src.services.clerkAuth import get_current_user_clerk_id
+from src.services.clerkAuth import require_active_plan
 from src.services.compareServiceV2 import run_document_comparison_v2_by_ids
 from src.services.compareStreamService import iter_compare_v2_stream
 from src.utils.sse import create_sse_response
@@ -12,7 +12,7 @@ router = APIRouter(tags=["compareV2Routes"])
 @router.post("/stream")
 async def compare_documents_v2_stream(
     payload: CompareDocumentsRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_instruction = payload.instruction.strip()
 
@@ -35,7 +35,7 @@ async def compare_documents_v2_stream(
 @router.post("")
 async def compare_documents_v2(
     payload: CompareDocumentsRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_instruction = payload.instruction.strip()
 

@@ -1,7 +1,31 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from src.services.clerkAuth import get_current_user_clerk_id
 from src.services.supabase import supabase
+from src.services.usageQuotaService import (
+    PENDING_PLAN,
+    get_user_usage,
+)
 
 router = APIRouter(tags=["userRoutes"])
+
+
+@router.get("/usage")
+async def get_usage(
+    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+):
+    try:
+        usage = get_user_usage(current_user_clerk_id)
+        return {
+            "message": "Usage retrieved successfully",
+            "data": usage,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Không thể tải thông tin gói sử dụng: {str(e)}",
+        )
 
 @router.post("/create")
 async def create_user(clerk_webhook_data: dict):
@@ -56,7 +80,18 @@ async def create_user(clerk_webhook_data: dict):
             return {"message": "User already exists", "clerk_id": clerk_id}
 
         # Create new user in database
-        result = supabase.table("users").insert({"clerk_id": clerk_id}).execute()
+        result = (
+            supabase.table("users")
+            .insert(
+                {
+                    "clerk_id": clerk_id,
+                    "plan": PENDING_PLAN,
+                    "question_limit": 0,
+                    "questions_used": 0,
+                }
+            )
+            .execute()
+        )
         if not result.data:
             raise HTTPException(
                 status_code=500, detail="Failed to create user in database"

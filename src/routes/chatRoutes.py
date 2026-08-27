@@ -7,7 +7,7 @@ from src.services.chatService import (
     get_chat_for_user,
     process_chat_message,
 )
-from src.services.clerkAuth import get_current_user_clerk_id
+from src.services.clerkAuth import require_active_plan
 from src.services.supabase import supabase
 
 message_router = APIRouter(tags=["chatMessageRoutes"])
@@ -25,7 +25,7 @@ def _serialize_chat_document(document: dict) -> dict:
 
 @message_router.get("/documents")
 async def list_chat_documents(
-    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    _current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         documents_result = (
@@ -56,7 +56,7 @@ async def list_chat_documents(
 @message_router.post("")
 async def send_chat_message(
     payload: SendChatMessageRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         result = process_chat_message(
@@ -80,7 +80,7 @@ async def send_chat_message(
 
 @session_router.get("")
 async def list_chats(
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         chats_result = (
@@ -121,7 +121,7 @@ async def list_chats(
 @session_router.post("")
 async def create_chat(
     chat: ChatCreate,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         ensure_user_exists(current_user_clerk_id)
@@ -158,7 +158,7 @@ async def create_chat(
 @session_router.get("/{chat_id}")
 async def get_chat(
     chat_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         chat = get_chat_for_user(chat_id, current_user_clerk_id)
@@ -178,7 +178,7 @@ async def get_chat(
 @session_router.delete("/{chat_id}")
 async def delete_chat(
     chat_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         chat_deletion_result = (

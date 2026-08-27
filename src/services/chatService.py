@@ -8,17 +8,14 @@ from src.rag.legal_citation import (
     extract_legal_citation_metadata,
     format_legal_citation_for_client,
 )
+from src.services.usageQuotaService import consume_question_quota, ensure_user_with_quota
 from src.services.supabase import supabase
 
 DEFAULT_CHAT_TITLE = "Cuộc trò chuyện mới"
 
 
 def ensure_user_exists(clerk_id: str) -> None:
-    existing = (
-        supabase.table("users").select("clerk_id").eq("clerk_id", clerk_id).execute()
-    )
-    if not existing.data:
-        supabase.table("users").insert({"clerk_id": clerk_id}).execute()
+    ensure_user_with_quota(clerk_id)
 
 
 def build_chat_title(message: str) -> str:
@@ -131,6 +128,7 @@ def process_chat_message(
     document_ids: list[str] | None = None,
 ) -> dict:
     ensure_user_exists(clerk_id)
+    usage = consume_question_quota(clerk_id)
 
     chat = ensure_chat_for_user(
         chat_id,
@@ -208,4 +206,5 @@ def process_chat_message(
     return {
         "message": format_message_for_client(assistant_message_result.data[0]),
         "chatTitle": chat_title,
+        "usage": usage,
     }

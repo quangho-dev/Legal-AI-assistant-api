@@ -426,3 +426,11 @@ class ComparisonAgentStep(BaseModel):
     agent: str
     status: str
     summary: str
+
+
+class AdminUpdateUserUsageRequest(BaseModel):
+    plan: Optional[str] = Field(None, description="Subscription plan slug")
+    questionLimit: Optional[int] = Field(
+        None, ge=0, description="Maximum questions allowed"
+    )
+    questionsUsed: Optional[int] = Field(None, ge=0, description="Questions already consumed")

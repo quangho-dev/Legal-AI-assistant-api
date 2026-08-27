@@ -26,7 +26,15 @@ services:
       - .env
     environment:
       REDIS_URL: redis://redis:6379/0
-    command: uvicorn src.server:app --host 0.0.0.0 --port 8000
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./src:/app/src
+    command: >
+      uvicorn src.server:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/src
     restart: unless-stopped
     depends_on:
       redis:
@@ -38,10 +46,14 @@ services:
       - .env
     environment:
       REDIS_URL: redis://redis:6379/0
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./src:/app/src
     command: >
-      celery -A src.services.celery:celery_app worker
-      --loglevel=info
-      --pool=threads
+      watchfiles
+      --filter python
+      "celery -A src.services.celery:celery_app worker --loglevel=info --pool=threads"
+      /app/src
     restart: unless-stopped
     depends_on:
       redis:

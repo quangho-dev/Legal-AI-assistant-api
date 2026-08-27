@@ -7,7 +7,7 @@ from src.models.index import (
     RenameDocumentRequest,
 )
 from src.services.chatService import ensure_user_exists
-from src.services.clerkAuth import get_current_user_clerk_id
+from src.services.clerkAuth import require_active_plan
 from src.services.compareDocumentService import (
     confirm_compare_upload,
     create_compare_upload_url,
@@ -36,7 +36,7 @@ def _serialize_compare_document(document: dict) -> dict:
 
 @router.get("/documents")
 async def get_compare_documents(
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         ensure_user_exists(current_user_clerk_id)
@@ -57,7 +57,7 @@ async def get_compare_documents(
 @router.get("/documents/{document_id}")
 async def get_compare_document_status(
     document_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = get_user_compare_document(current_user_clerk_id, document_id)
@@ -77,7 +77,7 @@ async def get_compare_document_status(
 @router.post("/upload-url")
 async def get_compare_upload_url(
     file_upload_request: FileUploadRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         ensure_user_exists(current_user_clerk_id)
@@ -105,7 +105,7 @@ async def get_compare_upload_url(
 @router.post("/confirm")
 async def confirm_compare_document_upload(
     confirm_request: ConfirmUploadRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = confirm_compare_upload(
@@ -129,7 +129,7 @@ async def confirm_compare_document_upload(
 async def rename_compare_document(
     document_id: str,
     rename_request: RenameDocumentRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = rename_user_compare_document(
@@ -153,7 +153,7 @@ async def rename_compare_document(
 @router.delete("/documents/{document_id}")
 async def delete_compare_document(
     document_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = delete_user_compare_document(
@@ -176,7 +176,7 @@ async def delete_compare_document(
 @router.post("/stream")
 async def compare_documents_stream(
     payload: CompareDocumentsRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_instruction = payload.instruction.strip()
 
@@ -199,7 +199,7 @@ async def compare_documents_stream(
 @router.post("")
 async def compare_documents(
     payload: CompareDocumentsRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_instruction = payload.instruction.strip()
 

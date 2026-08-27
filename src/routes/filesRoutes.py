@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from src.services.supabase import supabase
-from src.services.clerkAuth import get_current_user_clerk_id, require_admin_user
+from src.services.clerkAuth import get_current_user_clerk_id, require_active_plan, require_admin_user
 from src.models.index import (
     FileUploadRequest,
     ProcessingStatus,
@@ -66,7 +66,7 @@ def normalize_document_filename(new_name: str, document: dict) -> str:
 
 @router.get("/{project_id}/files")
 async def get_project_files(
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id)
+    current_user_clerk_id: str = Depends(require_active_plan)
 ):
     """
     ! Logic Flow
@@ -209,7 +209,7 @@ async def list_documents(
 @router.get("/documents/{document_id}/content")
 async def get_document_content(
     document_id: str,
-    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    _current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document_result = (
@@ -288,7 +288,7 @@ async def get_document_content(
 @router.get("/chunks/{chunk_id}")
 async def get_chunk_content(
     chunk_id: str,
-    _current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    _current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         chunk_result = (
@@ -739,7 +739,7 @@ async def get_case_law_crawl_job(
 async def confirm_file_upload_to_s3(
     project_id: str,
     confirm_file_upload_request: dict,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     """
     ! Logic Flow:
@@ -826,7 +826,7 @@ async def confirm_file_upload_to_s3(
 async def process_url(
     project_id: str,
     url: UrlRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     """
     ! Logic Flow:
@@ -915,7 +915,7 @@ async def process_url(
 async def delete_project_document(
     project_id: str,
     file_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     """
     ! Logic Flow:
@@ -981,7 +981,7 @@ async def delete_project_document(
 async def get_project_document_chunks(
     project_id: str,
     file_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     """
     ! Logic Flow:

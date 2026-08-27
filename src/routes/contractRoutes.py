@@ -9,7 +9,7 @@ from src.models.index import (
     RenameDocumentRequest,
 )
 from src.services.chatService import ensure_user_exists
-from src.services.clerkAuth import get_current_user_clerk_id
+from src.services.clerkAuth import require_active_plan
 from src.services.contractDocumentService import (
     confirm_contract_upload as confirm_contract_upload_service,
     create_contract_upload_url,
@@ -42,7 +42,7 @@ def _serialize_document(document: dict) -> dict:
 
 @router.get("/documents")
 async def list_contract_documents(
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         ensure_user_exists(current_user_clerk_id)
@@ -63,7 +63,7 @@ async def list_contract_documents(
 @router.post("/upload-url")
 async def get_contract_upload_url(
     file_upload_request: FileUploadRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         ensure_user_exists(current_user_clerk_id)
@@ -91,7 +91,7 @@ async def get_contract_upload_url(
 @router.post("/confirm")
 async def confirm_contract_upload(
     confirm_request: ConfirmUploadRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = confirm_contract_upload_service(
@@ -115,7 +115,7 @@ async def confirm_contract_upload(
 async def rename_contract_document(
     document_id: str,
     rename_request: RenameDocumentRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = rename_user_contract_document(
@@ -139,7 +139,7 @@ async def rename_contract_document(
 @router.delete("/documents/{document_id}")
 async def delete_contract_document(
     document_id: str,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     try:
         document = delete_user_contract_document(
@@ -162,7 +162,7 @@ async def delete_contract_document(
 @router.post("/draft")
 async def draft_contract_document(
     payload: ContractDraftRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_requirements = payload.requirements.strip()
     trimmed_party_role = payload.partyRole.strip()
@@ -204,7 +204,7 @@ async def draft_contract_document(
 @router.post("/draft/stream")
 async def draft_contract_document_stream(
     payload: ContractDraftRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_requirements = payload.requirements.strip()
     trimmed_party_role = payload.partyRole.strip()
@@ -236,7 +236,7 @@ async def draft_contract_document_stream(
 @router.post("/export/docx")
 async def export_contract_docx_document(
     payload: ContractExportDocxRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     trimmed_requirements = payload.requirements.strip()
     trimmed_party_role = payload.partyRole.strip()
@@ -297,7 +297,7 @@ async def export_contract_docx_document(
 @router.post("/export/docx/stream")
 async def export_contract_docx_document_stream(
     payload: ContractExportDocxRequest,
-    current_user_clerk_id: str = Depends(get_current_user_clerk_id),
+    current_user_clerk_id: str = Depends(require_active_plan),
 ):
     ensure_user_exists(current_user_clerk_id)
 

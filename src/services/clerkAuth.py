@@ -67,3 +67,12 @@ def require_admin_user(
             status_code=500,
             detail=f"Failed to verify admin role. {str(e)}",
         )
+
+
+def require_active_plan(
+    clerk_id: str = Depends(get_current_user_clerk_id),
+) -> str:
+    from src.services.usageQuotaService import assert_user_can_use_app
+
+    assert_user_can_use_app(clerk_id)
+    return clerk_id
